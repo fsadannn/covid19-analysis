@@ -35,8 +35,13 @@ class Simulation:
 
                     new_values[from_state] -= move
                     new_values[to_state] += move
-                    print(from_state, to_state, move)
-                    print(new_values)
+                    # print(from_state, to_state, move)
+                    # print(new_values)
+                    for i in new_values.values():
+                        if i<0:
+                            print(from_state, to_state, move)
+                            print(new_values)
+                            break
 
             current_values = new_values
 

@@ -76,7 +76,7 @@ def run(tr):
         lambda d: (
             min(
                 d['Asymptomatic']*n_test*(100-p_n_test)//(100*alive(d)),
-                 d['Asymptomatic']
+                int(d['Asymptomatic']*(1-(p_asympt_recover+p_symptoms)))
             )
         ),
     )
@@ -86,7 +86,7 @@ def run(tr):
         "Positive",
         lambda d: (
             min(
-                d['Symptomatic'],
+                int(d['Symptomatic']*(1-(p_sympt_recover+p_sympt_dead))),
                 n_test*p_n_test//100
             )
         ),
@@ -131,10 +131,9 @@ def run(tr):
 
     st.line_chart(data[visualize])
 
-    st.write(starting_population)
     st.write(data)
 
-    # st.write("### Simulation using binomial sampling with the selected probabilities")
+    st.write("### Simulation using binomial sampling with the selected probabilities")
 
     simulation = Simulation()
 
@@ -144,12 +143,6 @@ def run(tr):
     simulation.add_state("Recovered")
     simulation.add_state("Dead")
     simulation.add_state("Positive")
-
-    # def temp2(d):
-    #     print(alive(d),  d['Susceptible'], d["Symptomatic"], d["Symptomatic"]*n_meet*p_infect_symptomatic/alive(d))
-    #     r = round(np.random.binomial(d['Susceptible'], d["Symptomatic"]*n_meet*p_infect_symptomatic/alive(d), 1000).mean())
-    #     print(r)
-    #     return r
 
     simulation.add_transition(
         "Susceptible",
@@ -162,29 +155,29 @@ def run(tr):
     simulation.add_transition(
         "Susceptible",
         "Asymptomatic",
-        # temp2
         lambda d: (
             round(np.random.binomial(d['Susceptible'], d["Symptomatic"]*n_meet*p_infect_symptomatic/alive(d), 1000).mean())
         )
     )
 
-    # simulation.add_transition(
-    #     "Asymptomatic",
-    #     "Positive",
-    #     lambda d: (
-    #         min(
-    #             round(np.random.binomial(n_test*(100-p_n_test)//100,d['Asymptomatic']/alive(d), 1000).mean()),
-    #             d['Asymptomatic']
-    #         )
-    #     ),
-    # )
+    simulation.add_transition(
+        "Asymptomatic",
+        "Positive",
+        lambda d: (
+            min(
+                round(np.random.binomial(n_test*(100-p_n_test)//100,(d['Asymptomatic']+d['Symptomatic']+d['Positive'])/alive(d), 1000).mean()),
+                int(d['Asymptomatic']*(1-(p_asympt_recover+p_symptoms)))
+            )
+        ),
+    )
+
 
     simulation.add_transition(
         "Symptomatic",
         "Positive",
         lambda d: (
             min(
-                d['Symptomatic'],
+                int(d['Symptomatic']*(1-(p_sympt_recover+p_sympt_dead))),
                 n_test*p_n_test//100
             )
         ),
@@ -197,26 +190,26 @@ def run(tr):
     simulation.add_transition("Positive", "Dead", p_sympt_dead)
     simulation.add_transition("Positive", "Recovered", p_sympt_recover)
 
-    # data = simulation.run(
-    #     80, Susceptible=starting_population, Asymptomatic=1
-    # ).astype(int)
+    data = simulation.run(
+        80, Susceptible=starting_population, Asymptomatic=1
+    ).astype(int)
 
-    # data["Sick"] = data["Asymptomatic"] + data["Symptomatic"]
-    # data["New dead"] = data["Dead"].diff().fillna(0)
-    # data["Letality"] = data["New dead"] / data["Sick"]
-    # data["Letality (smooth)"] = data['Letality'].rolling(10).mean()
-    # data["Sum"] = data["Sick"]+data['Dead']+data['Susceptible']+data['Recovered']+data['Positive']
-    # data = data[data["Sick"] > 0]
+    data["Sick"] = data["Asymptomatic"] + data["Symptomatic"]
+    data["New dead"] = data["Dead"].diff().fillna(0)
+    data["Letality"] = data["New dead"] / data["Sick"]
+    data["Letality (smooth)"] = data['Letality'].rolling(10).mean()
+    data["Sum"] = data["Sick"]+data['Dead']+data['Susceptible']+data['Recovered']+data['Positive']
+    data = data[data["Sick"] > 0]
 
-    # visualize = list(data.columns)
-    # visualize = st.multiselect("Columns to visualize", visualize, ["Asymptomatic", "Symptomatic", "Dead"], key="Columns to visualize2")
+    visualize = list(data.columns)
+    visualize = st.multiselect("Columns to visualize", visualize, ["Asymptomatic", "Symptomatic", "Dead"], key="Columns to visualize2")
 
-    # st.line_chart(data[visualize])
+    st.line_chart(data[visualize])
+
+    st.write(data)
 
 
-    # st.write("### Visualizing the graphical model")
+    st.write("### Visualizing the graphical model")
 
-    # graph = simulation.graph()
-    # st.write(graph)
-    # st.write(starting_population)
-    # st.write(data)
+    graph = simulation.graph()
+    st.write(graph)
