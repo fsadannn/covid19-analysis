@@ -7,12 +7,14 @@ class Simulation:
     def __init__(self):
         self.states = []
         self.transitions = collections.defaultdict(list)
+        self.states_pair = set() # for efficiency only save states pairs with transitions
 
     def add_state(self, state: str):
         self.states.append(state)
 
     def add_transition(self, from_state: str, to_state: str, transition):
         self.transitions[(from_state, to_state)].append(transition)
+        self.states_pair.add((from_state, to_state))
 
     def run(self, n: int, **starting_values: dict):
         history = []
@@ -22,21 +24,19 @@ class Simulation:
             history.append(current_values)
             new_values = dict(current_values)
 
-            for from_state in self.states:
-                for to_state in self.states:
-                    if from_state == to_state:
-                        continue
+            for from_state, to_state in self.states_pair: # iterate ver states pairs with transitions
+                for tr in self.transitions[(from_state, to_state)]:
+                    if callable(tr):
+                        move = tr(current_values)
+                    else:
+                        move = int(tr * current_values[from_state])
 
-                    for tr in self.transitions[(from_state, to_state)]:
-                        if callable(tr):
-                            move = tr(current_values)
-                        else:
-                            move = tr * current_values[from_state]
+                    move = min(move, current_values[from_state])
 
-                        move = min(move, current_values[from_state])
-
-                        new_values[from_state] -= move
-                        new_values[to_state] += move
+                    new_values[from_state] -= move
+                    new_values[to_state] += move
+                    print(from_state, to_state, move)
+                    print(new_values)
 
             current_values = new_values
 
